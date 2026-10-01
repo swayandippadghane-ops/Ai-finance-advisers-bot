@@ -1,0 +1,17 @@
+{% extends "base.html" %}
+{% block title %}Log in{% endblock %}
+{% block content %}
+<section class="auth-card card">
+  <h1>Log in</h1>
+  <form method="post" action="{{ url_for('auth.login') }}" data-validate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <input type="hidden" name="next" value="{{ next_url }}">
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" value="{{ email }}" required maxlength="254" autocomplete="email" autofocus>
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" required maxlength="128" autocomplete="current-password">
+    <button class="btn btn-block" type="submit" data-loading="Logging in...">Log in</button>
+  </form>
+  <p class="muted center">New here? <a href="{{ url_for('auth.register') }}">Create an account</a></p>
+</section>
+{% endblock %}

@@ -1,0 +1,20 @@
+<div class="advice">
+  <p class="lead">{{ advice.summary }}</p>
+
+  <h3>Overspending areas</h3>
+  {% if advice.overspending %}
+  <ul class="advice-list">
+    {% for o in advice.overspending %}
+    <li><strong>{{ o.category }}</strong><span>{{ o.issue }}</span><em>{{ o.fix }}</em></li>
+    {% endfor %}
+  </ul>
+  {% else %}<p class="muted">No overspending areas found.</p>{% endif %}
+
+  {% if advice.saving_tips %}
+  <h3>Saving suggestions</h3>
+  <ul>{% for tip in advice.saving_tips %}<li>{{ tip }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  {% if advice.emergency_fund %}<h3>Emergency fund</h3><p>{{ advice.emergency_fund }}</p>{% endif %}
+  {% if advice.next_month_goal %}<h3>Goal for next month</h3><p>{{ advice.next_month_goal }}</p>{% endif %}
+</div>

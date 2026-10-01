@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Create account{% endblock %}
+{% block content %}
+<section class="auth-card card">
+  <h1>Create your account</h1>
+  <form method="post" action="{{ url_for('auth.register') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+    <label for="name">Name</label>
+    <input id="name" name="name" type="text" value="{{ form.name }}" required minlength="2" maxlength="60" autocomplete="name" autofocus>
+    <label for="email">Email</label>
+    <input id="email" name="email" type="email" value="{{ form.email }}" required maxlength="254" autocomplete="email">
+    <label for="password">Password</label>
+    <input id="password" name="password" type="password" required minlength="8" maxlength="128" autocomplete="new-password" aria-describedby="pw-help">
+    <p id="pw-help" class="hint">At least 8 characters, with a letter and a number.</p>
+    <label for="confirm_password">Confirm password</label>
+    <input id="confirm_password" name="confirm_password" type="password" required minlength="8" maxlength="128" autocomplete="new-password">
+    <button class="btn btn-block" type="submit" data-loading="Creating account...">Create account</button>
+  </form>
+  <p class="muted center">Already registered? <a href="{{ url_for('auth.login') }}">Log in</a></p>
+</section>
+{% endblock %}

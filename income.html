@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+{% from "_macros.html" import month_nav %}
+{% block title %}Income{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Income</h1><p class="muted">{{ month_label }} &middot; total <strong class="num">{{ summary.total_income|money }}</strong></p></div>
+  {{ month_nav('main.income_page', month, prev_month, next_month) }}
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Add income</h2>
+    <form method="post" action="{{ url_for('main.add_income') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="month" value="{{ month }}">
+      <input type="hidden" name="back" value="income">
+      <div class="row">
+        <div><label for="amount">Amount ({{ currency }})</label>
+          <input id="amount" name="amount" type="number" inputmode="decimal" min="0.01" max="10000000" step="0.01" required></div>
+        <div><label for="date">Date received</label>
+          <input id="date" name="date" type="date" value="{{ default_date }}" required></div>
+      </div>
+      <label for="source">Source</label>
+      <input id="source" name="source" type="text" maxlength="60" placeholder="Salary, client payment, allowance" required>
+      <button class="btn" type="submit" data-loading="Saving...">Add income</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Entries in {{ month_label }}</h2>
+    {% if incomes %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Source</th><th class="r">Amount</th><th></th></tr></thead>
+      <tbody>
+      {% for i in incomes %}
+      <tr>
+        <td>{{ i.received_on.strftime('%d %b') }}</td><td>{{ i.source }}</td><td class="r num">{{ i.amount|money }}</td>
+        <td class="r">
+          <form method="post" action="{{ url_for('main.delete_income', income_id=i.id) }}" data-confirm="Delete this income entry?">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+            <button class="link-danger" type="submit">Delete</button>
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="muted">No income recorded for this month yet.</p>{% endif %}
+  </section>
+</div>
+{% endblock %}

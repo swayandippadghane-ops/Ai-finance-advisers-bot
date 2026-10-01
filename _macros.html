@@ -1,0 +1,19 @@
+{% macro month_nav(endpoint, month, prev_month, next_month, extra={}) %}
+<form class="month-nav" method="get" action="{{ url_for(endpoint) }}">
+  <a class="btn btn-ghost btn-sm" href="{{ url_for(endpoint, month=prev_month, **extra) }}" aria-label="Previous month">&larr;</a>
+  <label class="sr-only" for="month-input">Month</label>
+  <input id="month-input" type="month" name="month" value="{{ month }}" data-autosubmit>
+  {% for key, value in extra.items() %}<input type="hidden" name="{{ key }}" value="{{ value }}">{% endfor %}
+  <a class="btn btn-ghost btn-sm" href="{{ url_for(endpoint, month=next_month, **extra) }}" aria-label="Next month">&rarr;</a>
+</form>
+{% endmacro %}
+
+{% macro status_badge(status) %}
+{% if status == 'over' %}<span class="badge badge-bad">Over budget</span>
+{% elif status == 'warning' %}<span class="badge badge-warn">Near limit</span>
+{% elif status == 'ok' %}<span class="badge badge-good">On track</span>{% endif %}
+{% endmacro %}
+
+{% macro category_options(cats, selected='') %}
+{% for c in cats %}<option value="{{ c }}" {% if c == selected %}selected{% endif %}>{{ c }}</option>{% endfor %}
+{% endmacro %}

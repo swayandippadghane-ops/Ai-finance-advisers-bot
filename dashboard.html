@@ -1,0 +1,153 @@
+{% extends "base.html" %}
+{% from "_macros.html" import month_nav, status_badge, category_options %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div>
+    <h1>Hello, {{ current_user.name.split(' ')[0] }}</h1>
+    <p class="muted">Your money in {{ month_label }}</p>
+  </div>
+  {{ month_nav('main.dashboard', month, prev_month, next_month) }}
+</div>
+
+<section class="stats" aria-label="Month totals">
+  <div class="stat"><span class="stat-label">Income</span><span class="stat-value num">{{ summary.total_income|money }}</span></div>
+  <div class="stat"><span class="stat-label">Expenses</span><span class="stat-value num">{{ summary.total_expenses|money }}</span></div>
+  <div class="stat"><span class="stat-label">Savings</span><span class="stat-value num {{ 'good' if summary.savings >= 0 else 'bad' }}">{{ summary.savings|money }}</span></div>
+  <div class="stat"><span class="stat-label">Savings rate</span><span class="stat-value num">{{ summary.savings_rate|pct }}</span></div>
+</section>
+
+{% if not summary.has_data %}
+<section class="card empty">
+  <h2>Let's get started</h2>
+  <p>Add this month's income below, then log your first expense. Your totals, charts and advice will appear here.</p>
+</section>
+{% endif %}
+
+{% if summary.over_categories or (summary.total_income > 0 and summary.total_expenses > summary.total_income) %}
+<section class="card alert-card" aria-label="Overspending alerts">
+  <h2>Overspending alerts</h2>
+  <ul class="plain">
+    {% if summary.total_income > 0 and summary.total_expenses > summary.total_income %}
+    <li><strong>Overall:</strong> you have spent {{ (summary.total_expenses - summary.total_income)|money }} more than you earned this month.</li>
+    {% endif %}
+    {% for r in summary.over_categories %}
+    <li><strong>{{ r.category }}</strong> is {{ r.over_by|money }} over its {{ r.limit|money }} limit. <span class="muted">{{ tips[r.category] }}</span></li>
+    {% endfor %}
+  </ul>
+</section>
+{% elif summary.total_budget == 0 and summary.has_data %}
+<section class="card hint-card">
+  <p>No budget is set for {{ month_label }}. <a href="{{ url_for('main.budget_page', month=month) }}">Create one</a> to get overspending alerts.</p>
+</section>
+{% endif %}
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Where your money went</h2>
+    {% if summary.total_expenses > 0 %}
+    <div class="donut-wrap">
+      <div class="donut" style="background: {{ summary.donut_css }}" role="img" aria-label="Spending by category">
+        <div class="donut-hole"><span class="num">{{ summary.total_expenses|money }}</span><small>spent</small></div>
+      </div>
+      <ul class="legend">
+        {% for r in summary.rows if r.spent > 0 %}
+        <li><span class="dot" style="background: {{ r.color }}"></span>{{ r.category }}<span class="num">{{ '%.0f' % r.share }}%</span></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% else %}
+    <p class="muted">Your spending chart appears once you log an expense.</p>
+    {% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Budget vs spending</h2>
+    {% set shown = summary.rows | selectattr('spent', 'gt', 0) | list + summary.rows | selectattr('limit', 'gt', 0) | rejectattr('spent', 'gt', 0) | list %}
+    {% if shown %}
+    <ul class="plain">
+      {% for r in shown %}
+      <li class="cat-row">
+        <div class="cat-top">
+          <span class="dot" style="background: {{ r.color }}"></span><strong>{{ r.category }}</strong>
+          {{ status_badge(r.status) }}
+          <span class="num right">{{ r.spent|money }}{% if r.limit %} / {{ r.limit|money }}{% endif %}</span>
+        </div>
+        <div class="bar"><span class="{{ r.status }}" style="width: {{ '%.1f' % r.bar_pct }}%"></span></div>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p class="muted">Category bars appear once you add expenses or a budget.</p>
+    {% endif %}
+  </section>
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Add monthly income</h2>
+    <form method="post" action="{{ url_for('main.add_income') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="month" value="{{ month }}">
+      <input type="hidden" name="back" value="dashboard">
+      <div class="row">
+        <div><label for="inc-amount">Amount ({{ currency }})</label>
+          <input id="inc-amount" name="amount" type="number" inputmode="decimal" min="0.01" max="10000000" step="0.01" required></div>
+        <div><label for="inc-date">Date received</label>
+          <input id="inc-date" name="date" type="date" value="{{ default_date }}" required></div>
+      </div>
+      <label for="inc-source">Source</label>
+      <input id="inc-source" name="source" type="text" maxlength="60" placeholder="Salary, freelance, allowance" required>
+      <button class="btn" type="submit" data-loading="Saving...">Add income</button>
+    </form>
+  </section>
+
+  <section class="card">
+    <h2>Add an expense</h2>
+    <form method="post" action="{{ url_for('main.add_expense') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="month" value="{{ month }}">
+      <input type="hidden" name="back" value="dashboard">
+      <div class="row">
+        <div><label for="exp-amount">Amount ({{ currency }})</label>
+          <input id="exp-amount" name="amount" type="number" inputmode="decimal" min="0.01" max="10000000" step="0.01" required></div>
+        <div><label for="exp-cat">Category</label>
+          <select id="exp-cat" name="category" required>{{ category_options(categories) }}</select></div>
+      </div>
+      <div class="row">
+        <div><label for="exp-date">Date</label>
+          <input id="exp-date" name="date" type="date" value="{{ default_date }}" required></div>
+        <div><label for="exp-desc">Note (optional)</label>
+          <input id="exp-desc" name="description" type="text" maxlength="120"></div>
+      </div>
+      <button class="btn" type="submit" data-loading="Saving...">Add expense</button>
+    </form>
+  </section>
+</div>
+
+<div class="grid grid-2">
+  <section class="card">
+    <div class="card-head"><h2>Recent expenses</h2><a href="{{ url_for('main.expenses_page', month=month) }}">View all</a></div>
+    {% if recent_expenses %}
+    <div class="table-wrap"><table>
+      <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="r">Amount</th></tr></thead>
+      <tbody>
+      {% for e in recent_expenses %}
+      <tr><td>{{ e.spent_on.strftime('%d %b') }}</td><td>{{ e.category }}</td><td>{{ e.description }}</td><td class="r num">{{ e.amount|money }}</td></tr>
+      {% endfor %}
+      </tbody>
+    </table></div>
+    {% else %}<p class="muted">No expenses logged for this month yet.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <div class="card-head"><h2>Financial health</h2></div>
+    <p class="score"><span class="score-num">{{ summary.health_score }}</span><span class="muted">/ 100 &middot; {{ summary.health_label }}</span></p>
+    <p class="muted">Half the score is your savings rate (20% earns full marks) and half is how many budgeted categories stay within their limit.</p>
+    <p>
+      <a class="btn btn-ghost" href="{{ url_for('main.recommendations', month=month) }}">{{ 'View AI advice' if has_advice else 'Get AI advice' }}</a>
+      <a class="btn btn-ghost" href="{{ url_for('main.report', month=month) }}">Monthly report</a>
+    </p>
+  </section>
+</div>
+{% endblock %}

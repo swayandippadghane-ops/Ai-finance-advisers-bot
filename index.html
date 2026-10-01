@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}Welcome{% endblock %}
+{% block content %}
+<section class="hero">
+  <h1>Know where your money goes, and keep more of it.</h1>
+  <p class="lead">Log your income and daily expenses, get a budget built from your own numbers, and receive AI-powered advice on overspending and saving.</p>
+  <p class="hero-actions">
+    <a class="btn" href="{{ url_for('auth.register') }}">Create a free account</a>
+    <a class="btn btn-ghost" href="{{ url_for('auth.login') }}">Log in</a>
+  </p>
+</section>
+
+<section class="grid grid-3">
+  <article class="card"><h2>Track</h2><p>Record income from any number of sources and log expenses in nine categories, from Food and Rent to Education and Entertainment.</p></article>
+  <article class="card"><h2>Plan</h2><p>Generate a 50/30/20 budget from your income and your own spending habits, then adjust every limit yourself.</p></article>
+  <article class="card"><h2>Improve</h2><p>See overspending flagged by category, get saving suggestions from Gemini AI, and review a monthly report you can export.</p></article>
+</section>
+{% endblock %}

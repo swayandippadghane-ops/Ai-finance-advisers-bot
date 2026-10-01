@@ -1,0 +1,52 @@
+{% extends "base.html" %}
+{% from "_macros.html" import month_nav, status_badge %}
+{% block title %}Budget{% endblock %}
+{% block content %}
+<div class="page-head">
+  <div><h1>Budget plan</h1><p class="muted">Monthly limits for {{ month_label }}</p></div>
+  {{ month_nav('main.budget_page', month, prev_month, next_month) }}
+</div>
+
+<section class="stats" aria-label="Budget totals">
+  <div class="stat"><span class="stat-label">Income</span><span class="stat-value num">{{ summary.total_income|money }}</span></div>
+  <div class="stat"><span class="stat-label">Total budget</span><span class="stat-value num">{{ summary.total_budget|money }}</span></div>
+  <div class="stat"><span class="stat-label">Planned savings</span><span class="stat-value num {{ 'good' if planned_savings >= 0 else 'bad' }}">{{ planned_savings|money }}</span></div>
+  <div class="stat"><span class="stat-label">Spent so far</span><span class="stat-value num">{{ summary.total_expenses|money }}</span></div>
+</section>
+
+{% if summary.total_budget > summary.total_income and summary.total_income > 0 %}
+<div class="flash flash-warning">Your limits add up to more than your income, so there is no room left for savings.</div>
+{% endif %}
+
+<div class="grid grid-2">
+  <section class="card">
+    <h2>Build a budget for me</h2>
+    <p>Splits your income into 50% needs, 30% wants and 20% savings, shaped by what you actually spent over the last three months. You can edit every limit afterwards.</p>
+    <form method="post" action="{{ url_for('main.generate_budget') }}" {% if summary.total_budget > 0 %}data-confirm="This replaces the limits you have set for {{ month_label }}. Continue?"{% endif %}>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="month" value="{{ month }}">
+      <button class="btn" type="submit" data-loading="Building...">Generate suggested budget</button>
+    </form>
+    {% if summary.total_income <= 0 %}<p class="hint">Add income for this month first.</p>{% endif %}
+  </section>
+
+  <section class="card">
+    <h2>Edit limits</h2>
+    <form method="post" action="{{ url_for('main.save_budget') }}">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token }}">
+      <input type="hidden" name="month" value="{{ month }}">
+      <ul class="plain budget-list">
+        {% for r in summary.rows %}
+        <li>
+          <label for="limit-{{ r.category }}">{{ r.category }} {{ status_badge(r.status) }}
+            <small class="muted">spent {{ r.spent|money }}</small></label>
+          <input id="limit-{{ r.category }}" name="limit_{{ r.category }}" type="number" inputmode="decimal"
+                 min="0" max="10000000" step="1" placeholder="No limit" value="{{ '%.0f' % r.limit if r.limit else '' }}">
+        </li>
+        {% endfor %}
+      </ul>
+      <button class="btn" type="submit" data-loading="Saving...">Save budget</button>
+    </form>
+  </section>
+</div>
+{% endblock %}

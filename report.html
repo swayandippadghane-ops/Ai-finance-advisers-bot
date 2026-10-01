@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% from "_macros.html" import month_nav, status_badge %}
+{% block title %}Report{% endblock %}
+{% block content %}
+<div class="page-head no-print">
+  <div><h1>Monthly report</h1><p class="muted">{{ month_label }}</p></div>
+  {{ month_nav('main.report', month, prev_month, next_month) }}
+</div>
+
+<div class="report-actions no-print">
+  <button class="btn" type="button" data-print>Print or save as PDF</button>
+  <a class="btn btn-ghost" href="{{ url_for('main.report_csv', month=month) }}">Download CSV</a>
+</div>
+
+<article class="report">
+  <header class="report-head">
+    <h2>Financial summary: {{ month_label }}</h2>
+    <p class="muted">Prepared for {{ current_user.name }} on {{ generated_on }}</p>
+  </header>
+
+  {% if not summary.has_data %}
+  <p class="muted">Nothing was recorded for this month.</p>
+  {% else %}
+  <section class="stats" aria-label="Totals">
+    <div class="stat"><span class="stat-label">Income</span><span class="stat-value num">{{ summary.total_income|money }}</span></div>
+    <div class="stat"><span class="stat-label">Expenses</span><span class="stat-value num">{{ summary.total_expenses|money }}</span></div>
+    <div class="stat"><span class="stat-label">Savings</span><span class="stat-value num {{ 'good' if summary.savings >= 0 else 'bad' }}">{{ summary.savings|money }}</span></div>
+    <div class="stat"><span class="stat-label">Savings rate</span><span class="stat-value num">{{ summary.savings_rate|pct }}</span></div>
+  </section>
+
+  <p><strong>Financial health:</strong> {{ summary.health_score }}/100 ({{ summary.health_label }})</p>
+
+  {% if compare %}
+  <h3>Compared with last month</h3>
+  <ul>
+    <li>Income {{ 'rose' if compare.income >= 0 else 'fell' }} by {{ compare.income|abs|money }}</li>
+    <li>Expenses {{ 'rose' if compare.expenses >= 0 else 'fell' }} by {{ compare.expenses|abs|money }}</li>
+    <li>Savings {{ 'rose' if compare.savings >= 0 else 'fell' }} by {{ compare.savings|abs|money }}</li>
+  </ul>
+  {% endif %}
+
+  <h3>Spending by category</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Category</th><th class="r">Spent</th><th class="r">Share</th><th class="r">Limit</th><th>Status</th></tr></thead>
+    <tbody>
+    {% for r in summary.rows if r.spent > 0 or r.limit > 0 %}
+    <tr>
+      <td>{{ r.category }}</td><td class="r num">{{ r.spent|money }}</td><td class="r num">{{ '%.0f' % r.share }}%</td>
+      <td class="r num">{{ r.limit|money if r.limit else '-' }}</td><td>{{ status_badge(r.status) }}</td>
+    </tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+
+  {% if by_source %}
+  <h3>Income sources</h3>
+  <ul>{% for name, total in by_source %}<li>{{ name }}: {{ total|money }}</li>{% endfor %}</ul>
+  {% endif %}
+
+  {% if summary.top_expenses %}
+  <h3>Largest expenses</h3>
+  <div class="table-wrap"><table>
+    <thead><tr><th>Date</th><th>Category</th><th>Note</th><th class="r">Amount</th></tr></thead>
+    <tbody>
+    {% for e in summary.top_expenses %}
+    <tr><td>{{ e.date.strftime('%d %b') }}</td><td>{{ e.category }}</td><td>{{ e.description }}</td><td class="r num">{{ e.amount|money }}</td></tr>
+    {% endfor %}
+    </tbody>
+  </table></div>
+  {% endif %}
+
+  <h3>Advice {% if advice_source == 'gemini' %}<span class="badge badge-good">Gemini AI</span>{% else %}<span class="badge badge-warn">Built-in</span>{% endif %}</h3>
+  {% include "_advice.html" %}
+  {% endif %}
+</article>
+{% endblock %}
